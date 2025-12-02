@@ -1,116 +1,21 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
+*.pyd
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
+# Virtualenvs
 env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.env
-.env.local
-.env.production
-!.env.template
-!.env.example
-!.env.template
-!.env.example
-ENV/
-env.bak/
-venv.bak/
 .venv/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-media/
-staticfiles/
-static/
+# Local config / secrets
+.env
 
 # VS Code
 .vscode/
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Docker
-*.pid
-*.pid.lock
-docker-compose.override.yml
-__docker_build__/
-
-# Environment variables
-.env
-
-# MacOS
-.DS_Store
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# IDEs
-.idea/
-.spyderproject
-.spyproject
-.ropeproject
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Backup files
-*~
-*.bak
-*.swp
-*.swo
-*.tmp
+# Runtime artifacts 
+media/
+static/
+tmp-mails/
+tmp-mails/
