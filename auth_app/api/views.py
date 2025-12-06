@@ -21,6 +21,7 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             user.is_active = False
+            user.save()
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
             activation_token = default_token_generator.make_token(user)
 
