@@ -9,7 +9,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=True,
         validators=[
-            UniqueValidator(queryset=User.objects.all())
+            UniqueValidator(
+                queryset=User.objects.all(),
+                message="Please check your entries and try again."
+            )
         ])
     password = serializers.CharField(write_only=True)
 
