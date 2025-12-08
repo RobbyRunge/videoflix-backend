@@ -6,8 +6,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 
-
 from auth_app.api.serializers import RegistrationSerializer
+from auth_app.api.signals import user_registered
 
 
 class RegisterView(APIView):
@@ -18,14 +18,19 @@ class RegisterView(APIView):
 
         if serializer.is_valid():
             user = serializer.save()
-            # Activation email is sent automatically via signal
+            
+            # Generate token
+            token = default_token_generator.make_token(user)
+            
+            # Send custom signal with token to trigger email
+            user_registered.send(sender=self.__class__, user=user, token=token)
 
             return Response({
                 "user": {
                     "id": user.id,
                     "email": user.email
                 },
-                "message": "Registration successful. Please check your email to activate your account."
+                "token": token
             }, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
