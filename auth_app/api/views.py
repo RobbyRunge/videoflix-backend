@@ -11,17 +11,22 @@ from auth_app.api.signals import user_registered
 
 
 class RegisterView(APIView):
+    """
+    API view to handle user registration.
+    Sends activation email with token upon successful registration.
+    """
     permission_classes = [AllowAny]
 
+    # Post method to register user
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
             user = serializer.save()
-            
+
             # Generate token
             token = default_token_generator.make_token(user)
-            
+
             # Send custom signal with token to trigger email
             user_registered.send(sender=self.__class__, user=user, token=token)
 
@@ -37,8 +42,12 @@ class RegisterView(APIView):
 
 
 class ActivateAccountView(APIView):
+    """
+    API view to handle account activation via token.
+    """
     permission_classes = [AllowAny]
 
+    # Get method to activate account
     def get(self, request, uidb64, token):
         try:
             user = User.objects.get(pk=uidb64)

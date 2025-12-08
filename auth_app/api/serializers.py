@@ -5,6 +5,11 @@ from rest_framework.validators import UniqueValidator
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for user registration.
+    Validates that password and confirmed_password match.
+    Creates inactive user upon successful validation.
+    """
     confirmed_password = serializers.CharField(write_only=True)
     email = serializers.EmailField(
         required=True,
