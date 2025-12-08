@@ -1,5 +1,3 @@
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
 
@@ -20,16 +18,14 @@ class RegisterView(APIView):
 
         if serializer.is_valid():
             user = serializer.save()
-
-            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-            activation_token = default_token_generator.make_token(user)
+            # Activation email is sent automatically via signal
 
             return Response({
                 "user": {
                     "id": user.id,
                     "email": user.email
                 },
-                "token": activation_token
+                "message": "Registration successful. Please check your email to activate your account."
             }, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -40,8 +36,7 @@ class ActivateAccountView(APIView):
 
     def get(self, request, uidb64, token):
         try:
-            uid = urlsafe_base64_decode(uidb64).decode()
-            user = User.objects.get(pk=uid)
+            user = User.objects.get(pk=uidb64)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             user = None
 
