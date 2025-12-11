@@ -28,7 +28,11 @@ class RegisterView(APIView):
             token = default_token_generator.make_token(user)
 
             # Send custom signal with token to trigger email
-            user_registered.send(sender=self.__class__, user=user, token=token)
+            user_registered.send(
+                sender=self.__class__,
+                user=user,
+                token=token
+            )
 
             return Response({
                 "user": {
