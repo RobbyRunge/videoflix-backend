@@ -68,7 +68,7 @@ class ActivateAccountView(APIView):
             return Response({"error": "Invalid activation link."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class LoginView(APIView):
+class CookieTokenObtainPairView(APIView):
     """
     API view to handle user login.
     Issues JWT tokens upon successful authentication.
@@ -126,6 +126,56 @@ class LoginView(APIView):
             samesite='Lax'
         )
         return response
+
+
+class CookieTokenRefreshView(APIView):
+    """
+    API view to handle JWT token refresh.
+    Issues new access and refresh tokens.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if not refresh_token:
+            return Response(
+                {"detail": "Refresh token missing."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            new_access_token = str(refresh.access_token)
+            new_refresh_token = str(refresh)
+
+            response = Response({
+                "detail": "Token refreshed",
+                "access_token": new_access_token,
+            }, status=status.HTTP_200_OK)
+
+            # Update cookies
+            response.set_cookie(
+                key='access_token',
+                value=new_access_token,
+                httponly=True,
+                secure=True,
+                samesite='Lax'
+            )
+            response.set_cookie(
+                key='refresh_token',
+                value=new_refresh_token,
+                httponly=True,
+                secure=True,
+                samesite='Lax'
+            )
+            return response
+
+        except Exception:
+            return Response(
+                {"detail": "Invalid refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 
 class LogoutView(APIView):
