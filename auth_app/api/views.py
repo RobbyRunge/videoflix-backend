@@ -126,3 +126,25 @@ class LoginView(APIView):
             samesite='Lax'
         )
         return response
+
+
+class LogoutView(APIView):
+    """
+    API view to handle user logout.
+    Deletes JWT cookies.
+    """
+    def post(self, request):
+        if not RefreshToken:
+            return Response(
+                {"detail": "Refresh token missing."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        response = Response({
+            "detail": "Logout successful! All tokens will be deleted. Refresh token is now invalid."
+        }, status=status.HTTP_200_OK)
+
+        # Delete cookies
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        return response
