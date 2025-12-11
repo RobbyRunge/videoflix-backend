@@ -41,3 +41,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
             is_active=False
         )
         return user
+
+
+class LoginSerializer(serializers.Serializer):
+    """
+    Serializer for user login.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
