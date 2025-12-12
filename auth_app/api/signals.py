@@ -54,14 +54,18 @@ def send_password_reset_email(sender, user, token, **kwargs):
     uid = user.pk
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5500')
     reset_link = (
-        f"{frontend_url}/pages/auth/reset_password.html"
+        f"{frontend_url}/pages/auth/confirm_password.html"
         f"?uid={uid}&token={token}"
     )
 
     # Render email template
+    # Calculate validity in hours for the template
+    timeout_seconds = getattr(settings, 'PASSWORD_RESET_TIMEOUT', 86400)
+    timeout_hours = int(timeout_seconds // 3600)
     html_message = render_to_string('password_reset_mail.html', {
         'user': user,
         'reset_link': reset_link,
+        'reset_link_valid_hours': timeout_hours,
     })
 
     # Send email

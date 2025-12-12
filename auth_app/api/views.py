@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from auth_app.api.serializers import RegistrationSerializer, LoginSerializer, PasswordResetSerializer
+from auth_app.api.serializers import RegistrationSerializer, LoginSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer
 from auth_app.api.signals import user_registered, password_reset_requested
 
 
@@ -233,6 +233,41 @@ class PasswordResetView(APIView):
             # Always return success to prevent email enumeration
             return Response({
                 "detail": "An email has been sent to reset your password."
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    API view to handle password reset confirmation.
+    Validates token and sets new password.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, uidb64, token):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+
+        if serializer.is_valid():
+            try:
+                user = User.objects.get(pk=uidb64)
+            except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+                return Response({
+                    "error": "Invalid reset link."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate token
+            if not default_token_generator.check_token(user, token):
+                return Response({
+                    "error": "Invalid or expired reset link."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set new password
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+
+            return Response({
+                "detail": "Your Password has been successfully reset."
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
