@@ -8,8 +8,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from auth_app.api.serializers import RegistrationSerializer, LoginSerializer
-from auth_app.api.signals import user_registered
+from auth_app.api.serializers import RegistrationSerializer, LoginSerializer, PasswordResetSerializer
+from auth_app.api.signals import user_registered, password_reset_requested
 
 
 class RegisterView(APIView):
@@ -183,6 +183,7 @@ class LogoutView(APIView):
     API view to handle user logout.
     Deletes JWT cookies.
     """
+
     def post(self, request):
         if not RefreshToken:
             return Response(
@@ -198,3 +199,40 @@ class LogoutView(APIView):
         response.delete_cookie('access_token')
         response.delete_cookie('refresh_token')
         return response
+
+
+class PasswordResetView(APIView):
+    """
+    API view to handle password reset request.
+    Sends password reset email if user exists.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+
+            try:
+                user = User.objects.get(email=email)
+
+                # Generate token
+                token = default_token_generator.make_token(user)
+
+                # Send custom signal with token to trigger email
+                password_reset_requested.send(
+                    sender=self.__class__,
+                    user=user,
+                    token=token
+                )
+            except User.DoesNotExist:
+                # Don't reveal that the user doesn't exist for security reasons
+                pass
+
+            # Always return success to prevent email enumeration
+            return Response({
+                "detail": "An email has been sent to reset your password."
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
