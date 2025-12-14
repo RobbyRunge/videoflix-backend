@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'django_rq',
-    'auth_app'
+    'auth_app',
+    'video_content_app'
 ]
 
 MIDDLEWARE = [
@@ -188,7 +189,7 @@ PASSWORD_RESET_TIMEOUT = 86400  # 24 hours
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'auth_app.api.authentication.CookieJWTAuthentication',
     ),
 }
 
