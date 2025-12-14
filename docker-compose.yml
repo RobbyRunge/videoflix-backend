@@ -1,5 +1,6 @@
-services:
+name: videoflix
 
+services:
   db:
     image: postgres:latest
     container_name: videoflix_database
@@ -23,7 +24,6 @@ services:
     image: videoflix_backend:latest
     env_file: .env
     container_name: videoflix_backend
-
     volumes:
       - .:/app
       - videoflix_media:/app/media
@@ -35,9 +35,6 @@ services:
     depends_on:
       - db
       - redis
-
-
-
 
 volumes:
   postgres_data:

@@ -1,0 +1,17 @@
+<html>
+
+<body>
+    <div style="display: flex; justify-content: center;">
+        <img src="http://localhost:8000/static/imgs/logo_icon.svg" alt="logo icon" />
+    </div>
+    <p>Dear {{ user_name }},</p>
+    <p>Thank you for registering with <b>Videoflix</b>. To complete your registration and verify your email address,
+        please click the link below:</p>
+    <a href="{{ activation_link }}"
+        style="background:#1a23dd;color:#fff;padding:20px 40px;border-radius:40px;text-decoration:none;font-weight:bold;display:inline-block;">Activate
+        account</a>
+    <p>If you did not create an account with us, please disregard this email.</p>
+    <p>Best regards,<br>Your Videoflix team!</p>
+</body>
+
+</html>
