@@ -4,20 +4,31 @@ from django.db.models.signals import post_save, post_delete
 import django_rq
 
 from video_content_app.models import Video
-from video_content_app.tasks import convert_480p, convert_720p, convert_1080p
+from video_content_app.tasks import (
+    convert_480p,
+    convert_720p,
+    convert_1080p,
+    delete_original_video
+)
 
 
 @receiver(post_save, sender=Video)
 def video_created_handler(sender, instance, created, **kwargs):
     """
     Signal handler for post_save signal of Video model.
-    Perform actions when a new video is created.
+    Converts video to different resolutions and deletes the original.
     """
     if created and instance.video_file:
         queue = django_rq.get_queue('default', autocommit=True)
-        queue.enqueue(convert_480p, instance.video_file.path)
-        queue.enqueue(convert_720p, instance.video_file.path)
-        queue.enqueue(convert_1080p, instance.video_file.path)
+        job1 = queue.enqueue(convert_480p, instance.video_file.path)
+        job2 = queue.enqueue(convert_720p, instance.video_file.path)
+        job3 = queue.enqueue(convert_1080p, instance.video_file.path)
+        # Delete original after all conversions are complete
+        queue.enqueue(
+            delete_original_video,
+            instance.video_file.path,
+            depends_on=[job1, job2, job3]
+        )
 
 
 @receiver(post_delete, sender=Video)

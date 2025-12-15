@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 
 def convert_480p(source_path):
@@ -53,3 +54,11 @@ def convert_1080p(source_path):
         target
     ]
     subprocess.run(cmd)
+
+
+def delete_original_video(source_path):
+    """
+    Delete the original video file after conversion is complete.
+    """
+    if os.path.isfile(source_path):
+        os.remove(source_path)
