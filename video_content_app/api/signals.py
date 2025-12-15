@@ -1,8 +1,9 @@
+import os
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
-import os
 
 from video_content_app.models import Video
+from video_content_app.tasks import convert_480p, convert_720p, convert_1080p
 
 
 @receiver(post_save, sender=Video)
@@ -11,8 +12,10 @@ def video_created_handler(sender, instance, created, **kwargs):
     Signal handler for post_save signal of Video model.
     Perform actions when a new video is created.
     """
-    if created:
-        pass  # Placeholder for actions to perform on video creation
+    if created and instance.video_file:
+        convert_480p(instance.video_file.path)
+        convert_720p(instance.video_file.path)
+        convert_1080p(instance.video_file.path)
 
 
 @receiver(post_delete, sender=Video)

@@ -117,7 +117,7 @@ RQ_QUEUES = {
         'DB': os.environ.get("REDIS_DB", default=0),
         'DEFAULT_TIMEOUT': 900,
         'REDIS_CLIENT_KWARGS': {},
-    },
+    }
 }
 
 
