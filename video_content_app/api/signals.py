@@ -19,12 +19,26 @@ def video_created_handler(sender, instance, created, **kwargs):
         queue.enqueue(convert_720p, instance.video_file.path)
         queue.enqueue(convert_1080p, instance.video_file.path)
 
+
 @receiver(post_delete, sender=Video)
 def video_deleted_handler(sender, instance, **kwargs):
     """
     Signal handler for post_delete signal of Video model.
-    Perform actions when a video is deleted.
+    Deletes original video, converted versions, and thumbnail.
     """
-    if instance.video_file:  # For later, update this one for different videos (480p, 720p, etc.)
+    # Delete original video file
+    if instance.video_file:
         if os.path.isfile(instance.video_file.path):
             os.remove(instance.video_file.path)
+
+        # Delete converted video files (480p, 720p, 1080p)
+        base_path = instance.video_file.path
+        for resolution in ['480p', '720p', '1080p']:
+            converted_path = f"{base_path}_{resolution}.mp4"
+            if os.path.isfile(converted_path):
+                os.remove(converted_path)
+
+    # Delete thumbnail
+    if instance.thumbnail:
+        if os.path.isfile(instance.thumbnail.path):
+            os.remove(instance.thumbnail.path)
