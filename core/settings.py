@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'django_rq',
-    'auth_app'
+    'auth_app',
+    'video_content_app',
 ]
 
 MIDDLEWARE = [
@@ -116,8 +117,10 @@ RQ_QUEUES = {
         'DB': os.environ.get("REDIS_DB", default=0),
         'DEFAULT_TIMEOUT': 900,
         'REDIS_CLIENT_KWARGS': {},
-    },
+    }
 }
+
+RQ_SHOW_ADMIN_LINK = True
 
 
 # Password validation
@@ -188,7 +191,7 @@ PASSWORD_RESET_TIMEOUT = 86400  # 24 hours
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'auth_app.api.authentication.CookieJWTAuthentication',
     ),
 }
 
