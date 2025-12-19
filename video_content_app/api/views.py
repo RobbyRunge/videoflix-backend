@@ -48,12 +48,10 @@ class VideoManifestView(APIView):
         Returns the HLS master playlist for a specific movie and resolution.
         """
         try:
-            # Verify video exists
             Video.objects.get(id=movie_id)
         except Video.DoesNotExist:
             raise Http404("Video not found")
 
-        # Construct path to manifest file
         manifest_path = os.path.join(
             settings.MEDIA_ROOT,
             'videos',
@@ -62,11 +60,9 @@ class VideoManifestView(APIView):
             'index.m3u8'
         )
 
-        # Check if manifest file exists
         if not os.path.exists(manifest_path):
             raise Http404("Manifest not found")
 
-        # Serve the manifest file
         try:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -92,12 +88,10 @@ class VideoSegmentView(APIView):
         Returns a single HLS video segment for a specific movie and resolution.
         """
         try:
-            # Verify video exists
             Video.objects.get(id=movie_id)
         except Video.DoesNotExist:
             raise Http404("Video not found")
 
-        # Construct path to segment file
         segment_path = os.path.join(
             settings.MEDIA_ROOT,
             'videos',
@@ -106,11 +100,9 @@ class VideoSegmentView(APIView):
             segment
         )
 
-        # Check if segment file exists
         if not os.path.exists(segment_path):
             raise Http404("Segment not found")
 
-        # Serve the segment file
         try:
             return FileResponse(
                 open(segment_path, 'rb'),
