@@ -5,9 +5,7 @@ import django_rq
 
 from video_content_app.models import Video
 from video_content_app.tasks import (
-    convert_480p,
-    convert_720p,
-    convert_1080p,
+    convert_to_hls,
     delete_original_video
 )
 
@@ -16,18 +14,17 @@ from video_content_app.tasks import (
 def video_created_handler(sender, instance, created, **kwargs):
     """
     Signal handler for post_save signal of Video model.
-    Converts video to different resolutions and deletes the original.
+    Converts video to HLS format with multiple resolutions and deletes the original.
     """
     if created and instance.video_file:
         queue = django_rq.get_queue('default', autocommit=True)
-        job1 = queue.enqueue(convert_480p, instance.video_file.path)
-        job2 = queue.enqueue(convert_720p, instance.video_file.path)
-        job3 = queue.enqueue(convert_1080p, instance.video_file.path)
-        # Delete original after all conversions are complete
+        job = queue.enqueue(
+            convert_to_hls, instance.video_file.path, instance.id)
+        # Delete original after conversion is complete
         queue.enqueue(
             delete_original_video,
             instance.video_file.path,
-            depends_on=[job1, job2, job3]
+            depends_on=job
         )
 
 
@@ -35,19 +32,20 @@ def video_created_handler(sender, instance, created, **kwargs):
 def video_deleted_handler(sender, instance, **kwargs):
     """
     Signal handler for post_delete signal of Video model.
-    Deletes original video, converted versions, and thumbnail.
+    Deletes HLS files and thumbnail.
     """
+    import shutil
+    from django.conf import settings
+
     # Delete original video file
     if instance.video_file:
         if os.path.isfile(instance.video_file.path):
             os.remove(instance.video_file.path)
 
-        # Delete converted video files (480p, 720p, 1080p)
-        base_path = instance.video_file.path
-        for resolution in ['480p', '720p', '1080p']:
-            converted_path = f"{base_path}_{resolution}.mp4"
-            if os.path.isfile(converted_path):
-                os.remove(converted_path)
+    # Delete HLS directory with all resolutions
+    hls_dir = os.path.join(settings.MEDIA_ROOT, 'videos', str(instance.id))
+    if os.path.isdir(hls_dir):
+        shutil.rmtree(hls_dir)
 
     # Delete thumbnail
     if instance.thumbnail:

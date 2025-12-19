@@ -1,59 +1,42 @@
 import subprocess
 import os
+from django.conf import settings
 
 
-def convert_480p(source_path):
+def convert_to_hls(source_path, video_id):
     """
-    Convert the given video to 480p resolution using ffmpeg.
+    Convert the given video to HLS format with multiple resolutions.
+    Creates directory structure: media/videos/<video_id>/<resolution>/
     """
-    target = source_path + '_480p.mp4'
-    cmd = [
-        'ffmpeg',
-        '-i', source_path,
-        '-s', 'hd480',
-        '-c:v', 'libx264',
-        '-crf', '23',
-        '-c:a', 'aac',
-        '-strict', '-2',
-        target
-    ]
-    subprocess.run(cmd)
+    base_dir = os.path.join(settings.MEDIA_ROOT, 'videos', str(video_id))
 
+    resolutions = {
+        '480p': {'size': '854x480', 'bitrate': '1000k'},
+        '720p': {'size': '1280x720', 'bitrate': '2500k'},
+        '1080p': {'size': '1920x1080', 'bitrate': '5000k'},
+    }
 
-def convert_720p(source_path):
-    """
-    Convert the given video to 720p resolution using ffmpeg.
-    """
-    target = source_path + '_720p.mp4'
-    cmd = [
-        'ffmpeg',
-        '-i', source_path,
-        '-s', 'hd720',
-        '-c:v', 'libx264',
-        '-crf', '23',
-        '-c:a', 'aac',
-        '-strict', '-2',
-        target
-    ]
-    subprocess.run(cmd)
+    for resolution, params in resolutions.items():
+        output_dir = os.path.join(base_dir, resolution)
+        os.makedirs(output_dir, exist_ok=True)
 
+        output_path = os.path.join(output_dir, 'index.m3u8')
 
-def convert_1080p(source_path):
-    """
-    Convert the given video to 1080p resolution using ffmpeg.
-    """
-    target = source_path + '_1080p.mp4'
-    cmd = [
-        'ffmpeg',
-        '-i', source_path,
-        '-s', 'hd1080',
-        '-c:v', 'libx264',
-        '-crf', '23',
-        '-c:a', 'aac',
-        '-strict', '-2',
-        target
-    ]
-    subprocess.run(cmd)
+        cmd = [
+            'ffmpeg',
+            '-i', source_path,
+            '-vf', f"scale={params['size']}",
+            '-c:v', 'libx264',
+            '-b:v', params['bitrate'],
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-start_number', '0',
+            '-hls_time', '10',
+            '-hls_list_size', '0',
+            '-f', 'hls',
+            output_path
+        ]
+        subprocess.run(cmd, check=True)
 
 
 def delete_original_video(source_path):
