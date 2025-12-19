@@ -18,4 +18,10 @@ env/
 media/
 static/
 tmp-mails/
-tmp-mails/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+.hypothesis/
