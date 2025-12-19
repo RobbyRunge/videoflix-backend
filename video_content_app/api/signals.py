@@ -20,7 +20,6 @@ def video_created_handler(sender, instance, created, **kwargs):
         queue = django_rq.get_queue('default', autocommit=True)
         job = queue.enqueue(
             convert_to_hls, instance.video_file.path, instance.id)
-        # Delete original after conversion is complete
         queue.enqueue(
             delete_original_video,
             instance.video_file.path,
@@ -37,17 +36,14 @@ def video_deleted_handler(sender, instance, **kwargs):
     import shutil
     from django.conf import settings
 
-    # Delete original video file
     if instance.video_file:
         if os.path.isfile(instance.video_file.path):
             os.remove(instance.video_file.path)
 
-    # Delete HLS directory with all resolutions
     hls_dir = os.path.join(settings.MEDIA_ROOT, 'videos', str(instance.id))
     if os.path.isdir(hls_dir):
         shutil.rmtree(hls_dir)
 
-    # Delete thumbnail
     if instance.thumbnail:
         if os.path.isfile(instance.thumbnail.path):
             os.remove(instance.thumbnail.path)

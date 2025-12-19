@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -43,12 +44,26 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-class LoginSerializer(serializers.Serializer):
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Serializer for user login.
+    Custom JWT serializer that accepts email instead of username.
     """
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+    email = serializers.EmailField(required=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.pop('username', None)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+
+        try:
+            user = User.objects.get(email=email)
+            attrs['username'] = user.username
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid credentials')
+
+        return super().validate(attrs)
 
 
 class PasswordResetSerializer(serializers.Serializer):

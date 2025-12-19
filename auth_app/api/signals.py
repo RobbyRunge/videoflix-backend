@@ -1,5 +1,4 @@
 from django.dispatch import receiver, Signal
-from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -19,7 +18,6 @@ def send_activation_email(sender, user, token, **kwargs):
     Send activation email to user after registration.
     Receives token from the view to ensure consistency.
     """
-    # Build activation link
     uid = user.pk
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5500')
     activation_link = (
@@ -27,13 +25,11 @@ def send_activation_email(sender, user, token, **kwargs):
         f"?uid={uid}&token={token}"
     )
 
-    # Render email template
     html_message = render_to_string('activation_email.html', {
         'user_name': user.email,
         'activation_link': activation_link,
     })
 
-    # Send email
     send_mail(
         subject='Activate Your Videoflix Account',
         message=f'Please activate your account by visiting: {activation_link}',
@@ -50,7 +46,6 @@ def send_password_reset_email(sender, user, token, **kwargs):
     Send password reset email to user.
     Receives token from the view to ensure consistency.
     """
-    # Build reset link
     uid = user.pk
     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5500')
     reset_link = (
@@ -58,8 +53,6 @@ def send_password_reset_email(sender, user, token, **kwargs):
         f"?uid={uid}&token={token}"
     )
 
-    # Render email template
-    # Calculate validity in hours for the template
     timeout_seconds = getattr(settings, 'PASSWORD_RESET_TIMEOUT', 86400)
     timeout_hours = int(timeout_seconds // 3600)
     html_message = render_to_string('password_reset_mail.html', {
@@ -68,7 +61,6 @@ def send_password_reset_email(sender, user, token, **kwargs):
         'reset_link_valid_hours': timeout_hours,
     })
 
-    # Send email
     send_mail(
         subject='Reset Your Videoflix Password',
         message=f'Please reset your password by visiting: {reset_link}',
