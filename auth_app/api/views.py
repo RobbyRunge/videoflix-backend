@@ -7,8 +7,15 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 
-from auth_app.api.serializers import RegistrationSerializer, LoginSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer
+from auth_app.api.serializers import (
+    RegistrationSerializer,
+    LoginSerializer,
+    EmailTokenObtainPairSerializer,
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer
+)
 from auth_app.api.signals import user_registered, password_reset_requested
 
 
@@ -68,40 +75,42 @@ class ActivateAccountView(APIView):
             return Response({"error": "Invalid activation link."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CookieTokenObtainPairView(APIView):
+class CookieTokenObtainPairView(TokenObtainPairView):
     """
-    API view to handle user login.
-    Issues JWT tokens upon successful authentication.
+    Custom view to handle user login and issue JWT tokens via HttpOnly cookies.
+    Accepts email instead of username.
     """
-    permission_classes = [AllowAny]
+    serializer_class = EmailTokenObtainPairSerializer
 
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
-        password = serializer.validated_data['password']
+    def post(self, request, *args, **kwargs):
+        print(f"DEBUG: Login attempt with data: {request.data}")
+        serializer = self.get_serializer(data=request.data)
 
         try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+            serializer.is_valid(raise_exception=True)
+            print(f"DEBUG: Serializer valid, user: {serializer.user}")
+        except Exception as e:
+            print(f"DEBUG: Serializer validation failed: {str(e)}")
             return Response(
                 {"detail": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        user = authenticate(request, username=user.username, password=password)
-        if not user:
-            return Response(
-                {"detail": "Invalid credentials"},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        # Get tokens from serializer
+        access_token = serializer.validated_data.get('access')
+        refresh_token = serializer.validated_data.get('refresh')
+
+        # Get user info
+        user = serializer.user
+        
+        print(f"DEBUG: User is_active: {user.is_active}")
+
         if not user.is_active:
             return Response(
                 {"detail": "Account not activated"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        refresh = RefreshToken.for_user(user)
         response = Response({
             "detail": "Login successful",
             "user": {
@@ -113,69 +122,64 @@ class CookieTokenObtainPairView(APIView):
         # Set HttpOnly cookies
         response.set_cookie(
             key='access_token',
-            value=str(refresh.access_token),
+            value=access_token,
             httponly=True,
             secure=True,
             samesite='Lax'
         )
+
         response.set_cookie(
             key='refresh_token',
-            value=str(refresh),
+            value=refresh_token,
             httponly=True,
             secure=True,
             samesite='Lax'
         )
+
         return response
 
 
-class CookieTokenRefreshView(APIView):
+class CookieTokenRefreshView(TokenRefreshView):
     """
-    API view to handle JWT token refresh.
-    Issues new access and refresh tokens.
+    Custom view to refresh JWT access token using HttpOnly cookies.
     """
-    permission_classes = [AllowAny]
 
-    def post(self, request):
-        refresh_token = request.COOKIES.get('refresh_token')
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get(
+            'refresh_token') or request.data.get('refresh')
 
-        if not refresh_token:
+        if refresh_token is None:
             return Response(
-                {"detail": "Refresh token missing."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            refresh = RefreshToken(refresh_token)
-            new_access_token = str(refresh.access_token)
-            new_refresh_token = str(refresh)
-
-            response = Response({
-                "detail": "Token refreshed",
-                "access_token": new_access_token,
-            }, status=status.HTTP_200_OK)
-
-            # Update cookies
-            response.set_cookie(
-                key='access_token',
-                value=new_access_token,
-                httponly=True,
-                secure=True,
-                samesite='Lax'
-            )
-            response.set_cookie(
-                key='refresh_token',
-                value=new_refresh_token,
-                httponly=True,
-                secure=True,
-                samesite='Lax'
-            )
-            return response
-
-        except Exception:
-            return Response(
-                {"detail": "Invalid refresh token."},
+                {"error": "Refresh token not found in cookies."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+        serializer = self.get_serializer(data={'refresh': refresh_token})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return Response(
+                {"error": "Refresh token invalid."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        access_token = serializer.validated_data.get('access')
+
+        response = Response({
+            "detail": "Token refreshed.",
+            "access": access_token
+        })
+
+        response.set_cookie(
+            key="access_token",
+            value=str(access_token),
+            httponly=True,
+            secure=True,
+            samesite='Lax'
+        )
+
+        return response
 
 
 class LogoutView(APIView):
