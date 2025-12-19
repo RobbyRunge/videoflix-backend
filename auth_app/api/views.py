@@ -1,6 +1,5 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,7 +10,6 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 
 from auth_app.api.serializers import (
     RegistrationSerializer,
-    LoginSerializer,
     EmailTokenObtainPairSerializer,
     PasswordResetSerializer,
     PasswordResetConfirmSerializer
@@ -26,17 +24,14 @@ class RegisterView(APIView):
     """
     permission_classes = [AllowAny]
 
-    # Post method to register user
     def post(self, request):
         serializer = RegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
             user = serializer.save()
 
-            # Generate token
             token = default_token_generator.make_token(user)
 
-            # Send custom signal with token to trigger email
             user_registered.send(
                 sender=self.__class__,
                 user=user,
@@ -60,7 +55,6 @@ class ActivateAccountView(APIView):
     """
     permission_classes = [AllowAny]
 
-    # Get method to activate account
     def get(self, request, uidb64, token):
         try:
             user = User.objects.get(pk=uidb64)
@@ -96,13 +90,11 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Get tokens from serializer
         access_token = serializer.validated_data.get('access')
         refresh_token = serializer.validated_data.get('refresh')
 
-        # Get user info
         user = serializer.user
-        
+
         print(f"DEBUG: User is_active: {user.is_active}")
 
         if not user.is_active:
@@ -119,7 +111,6 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             }
         }, status=status.HTTP_200_OK)
 
-        # Set HttpOnly cookies
         response.set_cookie(
             key='access_token',
             value=access_token,
@@ -199,7 +190,6 @@ class LogoutView(APIView):
             "detail": "Logout successful! All tokens will be deleted. Refresh token is now invalid."
         }, status=status.HTTP_200_OK)
 
-        # Delete cookies
         response.delete_cookie('access_token')
         response.delete_cookie('refresh_token')
         return response
@@ -221,10 +211,8 @@ class PasswordResetView(APIView):
             try:
                 user = User.objects.get(email=email)
 
-                # Generate token
                 token = default_token_generator.make_token(user)
 
-                # Send custom signal with token to trigger email
                 password_reset_requested.send(
                     sender=self.__class__,
                     user=user,
@@ -234,7 +222,6 @@ class PasswordResetView(APIView):
                 # Don't reveal that the user doesn't exist for security reasons
                 pass
 
-            # Always return success to prevent email enumeration
             return Response({
                 "detail": "An email has been sent to reset your password."
             }, status=status.HTTP_200_OK)
@@ -260,13 +247,11 @@ class PasswordResetConfirmView(APIView):
                     "error": "Invalid reset link."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Validate token
             if not default_token_generator.check_token(user, token):
                 return Response({
                     "error": "Invalid or expired reset link."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Set new password
             user.set_password(serializer.validated_data['new_password'])
             user.save()
 

@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -57,32 +56,14 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         email = attrs.get('email')
-        password = attrs.get('password')
-
-        if not email:
-            raise serializers.ValidationError('Email is required')
 
         try:
             user = User.objects.get(email=email)
-
-            # Test authenticate manually
-            from django.contrib.auth import authenticate as django_authenticate
-            auth_user = django_authenticate(
-                username=user.username,
-                password=password
-            )
-
             attrs['username'] = user.username
-
         except User.DoesNotExist:
-            raise serializers.ValidationError(
-                'No active account found with the given credentials')
+            raise serializers.ValidationError('Invalid credentials')
 
-        try:
-            result = super().validate(attrs)
-            return result
-        except Exception:
-            raise
+        return super().validate(attrs)
 
 
 class PasswordResetSerializer(serializers.Serializer):
