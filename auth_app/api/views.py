@@ -77,14 +77,11 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        print(f"DEBUG: Login attempt with data: {request.data}")
         serializer = self.get_serializer(data=request.data)
 
         try:
             serializer.is_valid(raise_exception=True)
-            print(f"DEBUG: Serializer valid, user: {serializer.user}")
-        except Exception as e:
-            print(f"DEBUG: Serializer validation failed: {str(e)}")
+        except Exception:
             return Response(
                 {"detail": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED
@@ -94,8 +91,6 @@ class CookieTokenObtainPairView(TokenObtainPairView):
         refresh_token = serializer.validated_data.get('refresh')
 
         user = serializer.user
-
-        print(f"DEBUG: User is_active: {user.is_active}")
 
         if not user.is_active:
             return Response(
