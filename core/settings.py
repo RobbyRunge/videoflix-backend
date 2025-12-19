@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
+import sys
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from datetime import timedelta
 
@@ -88,16 +89,26 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", default="videoflix_db"),
-        "USER": os.environ.get("DB_USER", default="videoflix_user"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", default="supersecretpassword"),
-        "HOST": os.environ.get("DB_HOST", default="db"),
-        "PORT": os.environ.get("DB_PORT", default=5432)
+TESTING = 'pytest' in sys.modules
+
+if TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", default="videoflix_db"),
+            "USER": os.environ.get("DB_USER", default="videoflix_user"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", default="supersecretpassword"),
+            "HOST": os.environ.get("DB_HOST", default="db"),
+            "PORT": os.environ.get("DB_PORT", default=5432)
+        }
+    }
 
 CACHES = {
     "default": {
@@ -109,6 +120,13 @@ CACHES = {
         "KEY_PREFIX": "videoflix"
     }
 }
+
+if TESTING:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
 
 RQ_QUEUES = {
     'default': {
