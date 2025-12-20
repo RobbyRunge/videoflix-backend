@@ -75,22 +75,37 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     """
     serializer_class = EmailTokenObtainPairSerializer
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    def _set_auth_cookies(self, response, access_token, refresh_token):
+        # Set HttpOnly cookies for access and refresh tokens.
+        cookie_config = {
+            'httponly': True,
+            'secure': True,
+            'samesite': 'Lax'
+        }
+        response.set_cookie(key='access_token',
+                            value=access_token, **cookie_config)
+        response.set_cookie(key='refresh_token',
+                            value=refresh_token, **cookie_config)
 
+    def _validate_serializer(self, serializer):
+        # Validate serializer and return error response if invalid.
         try:
             serializer.is_valid(raise_exception=True)
+            return None
         except Exception:
             return Response(
                 {"detail": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        access_token = serializer.validated_data.get('access')
-        refresh_token = serializer.validated_data.get('refresh')
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        error_response = self._validate_serializer(serializer)
+        if error_response:
+            return error_response
 
         user = serializer.user
-
         if not user.is_active:
             return Response(
                 {"detail": "Account not activated"},
@@ -105,20 +120,10 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             }
         }, status=status.HTTP_200_OK)
 
-        response.set_cookie(
-            key='access_token',
-            value=access_token,
-            httponly=True,
-            secure=True,
-            samesite='Lax'
-        )
-
-        response.set_cookie(
-            key='refresh_token',
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite='Lax'
+        self._set_auth_cookies(
+            response,
+            serializer.validated_data.get('access'),
+            serializer.validated_data.get('refresh')
         )
 
         return response
@@ -129,18 +134,29 @@ class CookieTokenRefreshView(TokenRefreshView):
     Custom view to refresh JWT access token using HttpOnly cookies.
     """
 
-    def post(self, request, *args, **kwargs):
-        refresh_token = request.COOKIES.get(
-            'refresh_token') or request.data.get('refresh')
+    def _get_refresh_token(self, request):
+        # Get refresh token from cookies or request data.
+        return request.COOKIES.get('refresh_token') or request.data.get('refresh')
 
-        if refresh_token is None:
+    def _set_access_cookie(self, response, access_token):
+        # Set access token cookie on response.
+        response.set_cookie(
+            key="access_token",
+            value=str(access_token),
+            httponly=True,
+            secure=True,
+            samesite='Lax'
+        )
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = self._get_refresh_token(request)
+        if not refresh_token:
             return Response(
                 {"error": "Refresh token not found in cookies."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
         serializer = self.get_serializer(data={'refresh': refresh_token})
-
         try:
             serializer.is_valid(raise_exception=True)
         except Exception:
@@ -150,20 +166,12 @@ class CookieTokenRefreshView(TokenRefreshView):
             )
 
         access_token = serializer.validated_data.get('access')
-
         response = Response({
             "detail": "Token refreshed.",
             "access": access_token
         })
 
-        response.set_cookie(
-            key="access_token",
-            value=str(access_token),
-            httponly=True,
-            secure=True,
-            samesite='Lax'
-        )
-
+        self._set_access_cookie(response, access_token)
         return response
 
 
@@ -224,27 +232,42 @@ class PasswordResetConfirmView(APIView):
     """
     permission_classes = [AllowAny]
 
+    def _get_user(self, uidb64):
+        """Get user by uidb64 or return None."""
+        try:
+            return User.objects.get(pk=uidb64)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return None
+
+    def _validate_reset_token(self, user, token):
+        """Validate user and token, return error response if invalid."""
+        if user is None:
+            return Response(
+                {"error": "Invalid reset link."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not default_token_generator.check_token(user, token):
+            return Response(
+                {"error": "Invalid or expired reset link."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return None
+
     def post(self, request, uidb64, token):
         serializer = PasswordResetConfirmSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if serializer.is_valid():
-            try:
-                user = User.objects.get(pk=uidb64)
-            except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-                return Response({
-                    "error": "Invalid reset link."
-                }, status=status.HTTP_400_BAD_REQUEST)
+        user = self._get_user(uidb64)
+        error_response = self._validate_reset_token(user, token)
+        if error_response:
+            return error_response
 
-            if not default_token_generator.check_token(user, token):
-                return Response({
-                    "error": "Invalid or expired reset link."
-                }, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
 
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-
-            return Response({
-                "detail": "Your Password has been successfully reset."
-            }, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "detail": "Your Password has been successfully reset."
+        }, status=status.HTTP_200_OK)
