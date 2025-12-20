@@ -2,6 +2,8 @@ import os
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 import django_rq
+from django.conf import settings
+import shutil
 
 from video_content_app.models import Video
 from video_content_app.tasks import (
@@ -33,9 +35,6 @@ def video_deleted_handler(sender, instance, **kwargs):
     Signal handler for post_delete signal of Video model.
     Deletes HLS files and thumbnail.
     """
-    import shutil
-    from django.conf import settings
-
     if instance.video_file:
         if os.path.isfile(instance.video_file.path):
             os.remove(instance.video_file.path)

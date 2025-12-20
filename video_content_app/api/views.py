@@ -42,29 +42,26 @@ class VideoManifestView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, movie_id, resolution):
-        """
-        GET /api/video/<movie_id>/<resolution>/index.m3u8
-        Returns the HLS master playlist for a specific movie and resolution.
-        """
+    def _validate_video(self, movie_id):
+        # Validate that video exists, raise Http404 if not.
         try:
             Video.objects.get(id=movie_id)
         except Video.DoesNotExist:
             raise Http404("Video not found")
 
+    def _get_manifest_path(self, movie_id, resolution):
+        # Construct and validate manifest file path.
         manifest_path = os.path.join(
-            settings.MEDIA_ROOT,
-            'videos',
-            f'{movie_id}',
-            resolution,
-            'index.m3u8'
+            settings.MEDIA_ROOT, 'videos', f'{movie_id}', resolution, 'index.m3u8'
         )
-
         if not os.path.exists(manifest_path):
             raise Http404("Manifest not found")
+        return manifest_path
 
+    def _read_manifest(self, path):
+        # Read and return manifest file content.
         try:
-            with open(manifest_path, 'r', encoding='utf-8') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 content = f.read()
             return HttpResponse(
                 content,
@@ -74,6 +71,12 @@ class VideoManifestView(APIView):
         except Exception:
             raise Http404("Error reading manifest file")
 
+    def get(self, request, movie_id, resolution):
+        # Returns the HLS master playlist for a specific movie and resolution.
+        self._validate_video(movie_id)
+        manifest_path = self._get_manifest_path(movie_id, resolution)
+        return self._read_manifest(manifest_path)
+
 
 class VideoSegmentView(APIView):
     """
@@ -82,32 +85,35 @@ class VideoSegmentView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, movie_id, resolution, segment):
-        """
-        GET /api/video/<movie_id>/<resolution>/<segment>/
-        Returns a single HLS video segment for a specific movie and resolution.
-        """
+    def _validate_video(self, movie_id):
+        # Validate that video exists, raise Http404 if not.
         try:
             Video.objects.get(id=movie_id)
         except Video.DoesNotExist:
             raise Http404("Video not found")
 
+    def _get_segment_path(self, movie_id, resolution, segment):
+        # Construct and validate segment file path.
         segment_path = os.path.join(
-            settings.MEDIA_ROOT,
-            'videos',
-            f'{movie_id}',
-            resolution,
-            segment
+            settings.MEDIA_ROOT, 'videos', f'{movie_id}', resolution, segment
         )
-
         if not os.path.exists(segment_path):
             raise Http404("Segment not found")
+        return segment_path
 
+    def _serve_segment(self, path):
+        # Serve the video segment file.
         try:
             return FileResponse(
-                open(segment_path, 'rb'),
+                open(path, 'rb'),
                 content_type='video/MP2T',
                 status=status.HTTP_200_OK
             )
         except Exception:
             raise Http404("Error reading segment file")
+
+    def get(self, request, movie_id, resolution, segment):
+        # Returns a single HLS video segment for a specific movie and resolution.
+        self._validate_video(movie_id)
+        segment_path = self._get_segment_path(movie_id, resolution, segment)
+        return self._serve_segment(segment_path)
