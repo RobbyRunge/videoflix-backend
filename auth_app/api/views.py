@@ -233,14 +233,14 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 
     def _get_user(self, uidb64):
-        """Get user by uidb64 or return None."""
+        # Get user by uidb64 or return None
         try:
             return User.objects.get(pk=uidb64)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return None
 
     def _validate_reset_token(self, user, token):
-        """Validate user and token, return error response if invalid."""
+        # Validate user and token, return error response if invalid
         if user is None:
             return Response(
                 {"error": "Invalid reset link."},
