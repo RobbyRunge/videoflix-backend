@@ -19,7 +19,7 @@ class VideoSerializer(serializers.ModelSerializer):
         """
         Return full URL for thumbnail if it exists.
         """
-        if obj.thumbnail:
+        if obj.thumbnail and obj.thumbnail.name:
             request = self.context.get('request')
             if request is not None:
                 return request.build_absolute_uri(obj.thumbnail.url)
