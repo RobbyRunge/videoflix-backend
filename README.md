@@ -171,8 +171,8 @@ pip install -r requirements.txt
 4. **Configure environment variables**
 ```bash
 # Create and fill .env file (see Configuration)
-copy .env.example .env  # Windows
-cp .env.example .env    # Linux/Mac
+copy .env.template .env  # Windows
+cp .env.template .env    # Linux/Mac
 ```
 
 5. **Run database migrations**
@@ -200,27 +200,33 @@ cd modul-11.2-videoflix-backend
 
 2. **Configure environment variables**
 ```bash
-# Create .env file
-copy .env.example .env  # Windows
-cp .env.example .env    # Linux/Mac
+# Create .env file with your settings
+copy .env.template .env  # Windows
+cp .env.template .env    # Linux/Mac
+
+# Configure superuser credentials in .env:
+# DJANGO_SUPERUSER_USERNAME=your_admin_username
+# DJANGO_SUPERUSER_PASSWORD=your_admin_password
+# DJANGO_SUPERUSER_EMAIL=your_admin_email
 ```
 
-3. **Start containers**
+3. **Build Docker images**
+```bash
+docker-compose build
+```
+
+4. **Start containers in the background**
 ```bash
 docker-compose up -d
 ```
 
-4. **Run migrations**
+5. **Run migrations**
 ```bash
 docker-compose exec web python manage.py migrate
 ```
 
-5. **Create superuser**
-```bash
-docker-compose exec web python manage.py createsuperuser
-```
-
 The server is now accessible at `http://localhost:8000`.
+The superuser is automatically created from your `.env` configuration.
 
 ## Configuration
 
