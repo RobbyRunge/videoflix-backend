@@ -200,15 +200,13 @@ cd modul-11.2-videoflix-backend
 
 2. **Configure environment variables**
 ```bash
-# Create .env file with your settings
+# Create .env file from template
 copy .env.template .env  # Windows
 cp .env.template .env    # Linux/Mac
-
-# Configure superuser credentials in .env:
-# DJANGO_SUPERUSER_USERNAME=your_admin_username
-# DJANGO_SUPERUSER_PASSWORD=your_admin_password
-# DJANGO_SUPERUSER_EMAIL=your_admin_email
 ```
+
+> 🚨 **IMPORTANT:** Configure the credentials in your `.env` file!  
+> A complete overview of all variables can be found in the section [Configuration → Environment Variables](#environment-variables).
 
 3. **Build Docker images**
 ```bash
@@ -234,40 +232,55 @@ The superuser is automatically created from your `.env` configuration.
 
 Create a `.env` file in the project root with the following variables:
 
+> **Note:** Variables marked with ⚠️ **must be changed** for the application to work properly.
+
 ```env
-# Django
-SECRET_KEY=your-secret-key-here
+# Admin (⚠️ Required - Change these values)
+DJANGO_SUPERUSER_USERNAME=your_admin_username
+DJANGO_SUPERUSER_PASSWORD=your_admin_password
+DJANGO_SUPERUSER_EMAIL=your_admin_email
+
+# Django (⚠️ Required - Generate a secure secret key)
+SECRET_KEY=your-secret-key
 DEBUG=True
 ALLOWED_HOSTS=127.0.0.1
 CSRF_TRUSTED_ORIGINS=http://127.0.0.1:5500
 
-# CORS
+# CORS (✅ Optional - Adjust if needed)
 CORS_ALLOWED_ORIGINS=http://127.0.0.1:5500
 CORS_ALLOW_CREDENTIALS=True
 
-# Database
-DB_NAME=videoflix_db
+# Frontend URL (✅ Optional - Change if using different URL)
+FRONTEND_URL=http://127.0.0.1:5500
+
+# Database (⚠️ Required - Change username and password)
+DB_NAME=your-db-name
 DB_USER=postgres
-DB_PASSWORD=your-password
+DB_PASSWORD=your-db-password
 DB_HOST=localhost
 DB_PORT=5432
 
-# Redis
+# Redis (✅ Optional - Default values work with Docker)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
-# Email Configuration
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.gmail.com
+# Email Configuration (⚠️ Required - Configure your SMTP settings)
+EMAIL_HOST=smtp.example.com
 EMAIL_PORT=587
+EMAIL_HOST_USER=your_email@example.com
+EMAIL_HOST_PASSWORD=your_email_password
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
-DEFAULT_FROM_EMAIL=your-email@gmail.com
-
-# Frontend URL (for email links)
-FRONTEND_URL=http://127.0.0.1:5500
+EMAIL_USE_SSL=False
+DEFAULT_FROM_EMAIL=your_email@example.com
 ```
+
+**How to generate a Django SECRET_KEY:**
+
+Run the following command in your terminal:
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+Copy the output and use it as the value for `SECRET_KEY` in your `.env` file.
 
 ### Database Setup
 
