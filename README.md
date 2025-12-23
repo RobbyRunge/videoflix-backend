@@ -722,6 +722,38 @@ git push origin feature/new-feature
 
 ### Common Issues
 
+#### Line Ending Issues (CRLF vs LF)
+**Problem:** Docker container fails to start with errors like `/bin/bash^M: bad interpreter` or shell scripts don't execute properly.
+
+**Cause:** Windows uses CRLF (`\r\n`) line endings, while Linux/Docker expects LF (`\n`).
+
+**Solution:**
+```bash
+# Convert specific files (especially .sh files)
+# Using Git
+git config core.autocrlf input
+git rm --cached -r .
+git reset --hard
+
+# Using dos2unix (if installed)
+dos2unix backend.entrypoint.sh
+
+# Using VS Code (recommended)
+# 1. Open the file (backend.entrypoint.sh)
+# 2. Click on "CRLF" in the status bar (bottom right)
+# 3. Select "LF"
+# 4. Save the file
+```
+
+**Prevention:**
+```bash
+# Create .gitattributes file in project root
+echo "* text=auto eol=lf" > .gitattributes
+echo "*.sh text eol=lf" >> .gitattributes
+git add .gitattributes
+git commit -m "Enforce LF line endings"
+```
+
 #### Port already in use
 ```bash
 # Windows: Release port
