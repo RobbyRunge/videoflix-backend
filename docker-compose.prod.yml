@@ -1,26 +1,27 @@
-services: 
-    db: 
+services:
+    db:
+        restart: always
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "3"
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    redis:
         restart: always
         logging:
             options:
                 max-size: "10m"
                 max-file: "3"
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-                
-    redis: 
-        restart: always
-        logging:
-            options:
-            max-size: "10m"
-            max-file: "3"
 
-    web: 
-        entrypoint: ["/app/backend.entrypoint.prod.sh"]
-        volumes: 
+    web:
+        entrypoint: [ "/app/backend.entrypoint.prod.sh" ]
+        volumes:
             - /srv/videoflix/media:/app/media
             - /srv/videoflix/static:/app/static
         restart: always
@@ -29,75 +30,58 @@ services:
                 max-size: "10m"
                 max-file: "3"
 
-    nginx: 
+    nginx:
         image: nginx:latest
         container_name: videoflix_nginx
         restart: always
-        ports: 
+        ports:
             - "80:80"
             - "443:443"
-        volumes: 
+        volumes:
             - /srv/videoflix/static:/srv/videoflix/static
             - /srv/videoflix/media:/srv/videoflix/media
             - ./nginx/conf.d:/etc/nginx/conf.d
             - ./certbot/www:/var/www/certbot
             - ./certbot/conf:/etc/letsencrypt
-        depends_on: 
+        depends_on:
             - web
 
-worker: 
-    build: 
-        context: .
-        dockerfile: backend.Dockerfile
-    container_name: videoflix_worker
-    entrypoint: ""
-    command: python manage.py rqworker default
-    env_file: .env
-    volumes: 
-        - /srv/videoflix/media:/app/media
-        - /srv/videoflix/static:/app/static
-    depends_on: 
-        - redis
-    restart: always
+    worker:
+        build:
+            context: .
+            dockerfile: backend.Dockerfile
+        container_name: videoflix_worker
+        entrypoint: ""
+        command: python manage.py rqworker default
+        env_file: .env
+        volumes:
+            - /srv/videoflix/media:/app/media
+            - /srv/videoflix/static:/app/static
+        depends_on:
+            - redis
+        restart: always
 
-certbot: 
-    image: certbot/certbot
-    container_name: videoflix_certbot
-    volumes: 
-        - ./certbot/www:/var/www/certbot
-        - ./certbot/conf:/etc/letsencrypt
-    entrypoint: ""
-    command: 
-        [ 
-            "certbot", 
-            "certonly", 
-            "--webroot", 
-            "-w", 
-            "/var/www/certbot", 
-            "-d", 
-            "api.videoflix.robby-runge.de",
-            "--email", 
-            "mail@robby-runge.de",
-            "--agree-tos", 
-            "--no-eff-email" 
-        ]
-    depends_on: 
-        - nginx
+    certbot:
+        image: certbot/certbot
+        container_name: videoflix_certbot
+        volumes:
+            - ./certbot/www:/var/www/certbot
+            - ./certbot/conf:/etc/letsencrypt
+        entrypoint: ""
+        command: [ "certbot", "certonly", "--webroot", "-w", "/var/www/certbot", "-d", "api.videoflix.robby-runge.de", "--email", "mail@robby-runge.de", "--agree-tos", "--no-eff-email" ]
+        depends_on:
+            - nginx
 
-certbot-renew: 
-    image: certbot/certbot
-    container_name: videoflix_certbot_renew
-    restart: always
-    entrypoint: ""
-    command: > 
-        sh -c "while :; do 
-        certbot renew --quiet --webroot -w /var/www/certbot && 
-        nginx -s reload; 
-        sleep 12h; 
-        done"
-    volumes: 
-        - ./certbot/www:/var/www/certbot
-        - ./certbot/conf:/etc/letsencrypt
-        - ./nginx/conf.d:/etc/nginx/conf.d
-    depends_on: 
-        - nginx
+    certbot-renew:
+        image: certbot/certbot
+        container_name: videoflix_certbot_renew
+        restart: always
+        entrypoint: ""
+        command: >
+            sh -c "while :; do  certbot renew --quiet --webroot -w /var/www/certbot &&  nginx -s reload;  sleep 12h;  done"
+        volumes:
+            - ./certbot/www:/var/www/certbot
+            - ./certbot/conf:/etc/letsencrypt
+            - ./nginx/conf.d:/etc/nginx/conf.d
+        depends_on:
+            - nginx
