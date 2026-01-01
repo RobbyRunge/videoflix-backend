@@ -42,6 +42,10 @@ A Django REST Framework based backend for a video streaming platform with authen
 
 Videoflix Backend is a modern video streaming platform designed to securely manage and stream videos via HLS (HTTP Live Streaming). The project provides a complete REST API with authentication, user management, and video management.
 
+### Videoflix Frontend
+ 
+You can find the corresponding frontend here: [https://github.com/RobbyRunge/videoflix-frontend](https://github.com/RobbyRunge/videoflix-frontend)
+
 ## Features
 
 ### Authentication & User Management
