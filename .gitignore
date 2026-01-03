@@ -16,7 +16,6 @@ env/
 
 # Runtime artifacts 
 media/
-static/
 tmp-mails/
 
 # Testing
