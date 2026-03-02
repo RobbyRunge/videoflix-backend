@@ -27,12 +27,7 @@ jobs:
           SECRET_KEY: 'ci-test-secret-key'
           DEBUG: 'True'
           ALLOWED_HOSTS: 'localhost,127.0.0.1'
-          DB_NAME: 'test_db'
-          DB_USER: 'test_user'
-          DB_PASSWORD: 'test_password'
-          DB_HOST: 'localhost'
-          DB_PORT: '5432'
-        run: python manage.py test
+        run: pytest
 
   deploy:
     name: Deploy via SSH
